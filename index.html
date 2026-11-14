@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ma Todoliste</title>
+<style>
+  :root {
+    --bg: #f7f7f5;
+    --card: #ffffff;
+    --text: #1f2328;
+    --muted: #8b949e;
+    --line: #e8e8e4;
+    --accent: #2563eb;
+    --devoir: #f59e0b;
+    --mail: #10b981;
+    --slack: #a855f7;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    padding: 48px 16px;
+  }
+  .app { width: 100%; max-width: 560px; }
+  h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
+
+  form { display: flex; gap: 8px; margin-bottom: 12px; }
+  input[type="text"] {
+    flex: 1;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    font-size: 15px;
+    background: var(--card);
+    outline: none;
+    transition: border-color .15s;
+  }
+  input[type="text"]:focus { border-color: var(--accent); }
+  select {
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    cursor: pointer;
+  }
+  button.add {
+    padding: 12px 18px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+  }
+  button.add:hover { opacity: .88; }
+
+  .filters { display: flex; gap: 6px; margin: 16px 0 8px; flex-wrap: wrap; }
+  .filters button {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .filters button.active { background: var(--text); color: #fff; }
+
+  ul { list-style: none; margin-top: 8px; }
+  li {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    animation: in .18s ease;
+  }
+  @keyframes in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  li input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .task { flex: 1; }
+  .task .label { font-size: 15px; }
+  li.done .task .label { text-decoration: line-through; color: var(--muted); }
+  .tag {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    letter-spacing: .3px;
+  }
+  .tag.devoir { background: #fef3c7; color: #92400e; }
+  .tag.mail { background: #d1fae5; color: #065f46; }
+  .tag.slack { background: #f3e8ff; color: #6b21a8; }
+  .delete {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: color .15s, background .15s;
+  }
+  .delete:hover { color: #dc2626; background: #fee2e2; }
+
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 16px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .footer button {
+    border: none; background: none; color: var(--accent);
+    font-size: 13px; cursor: pointer; padding: 4px 6px; border-radius: 6px;
+  }
+  .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<div class="app">
+  <h1>Ma Todoliste</h1>
+  <p class="subtitle">Ce que tu dois faire — devoirs, mails, Slack.</p>
+
+  <form id="form">
+    <input type="text" id="input" placeholder="Ex : Répondre au mail de M. Dupont…" autocomplete="off" />
+    <select id="category">
+      <option value="devoir">Devoir</option>
+      <option value="mail">Mail</option>
+      <option value="slack">Slack</option>
+    </select>
+    <button class="add" type="submit">Ajouter</button>
+  </form>
+
+  <div class="filters" id="filters">
+    <button data-filter="all" class="active">Tout</button>
+    <button data-filter="devoir">Devoir</button>
+    <button data-filter="mail">Mail</button>
+    <button data-filter="slack">Slack</button>
+    <button data-filter="todo">À faire</button>
+    <button data-filter="done">Terminé</button>
+  </div>
+
+  <ul id="list"></ul>
+  <div class="empty" id="empty" hidden>Rien ici. Ajoute une tâche ! ✨</div>
+
+  <div class="footer">
+    <span id="count"></span>
+    <button id="clearDone">Effacer les terminées</button>
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = "todoliste.tasks";
+  const CATS = ["devoir", "mail", "slack"];
+
+  let tasks = [];
+  try { tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { tasks = []; }
+  let filter = "all";
+
+  const $ = (id) => document.getElementById(id);
+  const listEl = $("list"), emptyEl = $("empty"), countEl = $("count");
+
+  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+
+  function render() {
+    const visible = tasks.filter(t =>
+      filter === "all" ? true :
+      filter === "todo" ? !t.done :
+      filter === "done" ? t.done :
+      t.category === filter
+    );
+    listEl.innerHTML = "";
+    visible.forEach(t => {
+      const li = document.createElement("li");
+      if (t.done) li.classList.add("done");
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = t.done;
+      cb.addEventListener("change", () => { t.done = cb.checked; save(); render(); });
+
+      const div = document.createElement("div");
+      div.className = "task";
+      const span = document.createElement("span");
+      span.className = "label";
+      span.textContent = t.text;
+      div.appendChild(span);
+
+      const tag = document.createElement("span");
+      tag.className = "tag " + t.category;
+      tag.textContent = t.category;
+
+      const del = document.createElement("button");
+      del.className = "delete";
+      del.title = "Supprimer";
+      del.textContent = "✕";
+      del.addEventListener("click", () => {
+        tasks = tasks.filter(x => x !== t);
+        save(); render();
+      });
+
+      li.append(cb, div, tag, del);
+      listEl.appendChild(li);
+    });
+    emptyEl.hidden = visible.length > 0;
+    const remaining = tasks.filter(t => !t.done).length;
+    countEl.textContent = remaining === 0 ? "Tout est fait 🎉" : remaining + (remaining > 1 ? " tâches restantes" : " tâche restante");
+  }
+
+  $("form").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = $("input").value.trim();
+    if (!text) return;
+    tasks.push({ id: Date.now(), text, category: $("category").value, done: false });
+    $("input").value = "";
+    save(); render();
+  });
+
+  $("filters").addEventListener("click", (e) => {
+    const btn = e.target.closest("button[data-filter]");
+    if (!btn) return;
+    filter = btn.dataset.filter;
+    document.querySelectorAll("#filters button").forEach(b => b.classList.toggle("active", b === btn));
+    render();
+  });
+
+  $("clearDone").addEventListener("click", () => {
+    tasks = tasks.filter(t => !t.done);
+    save(); render();
+  });
+
+  render();
+</script>
+</body>
+</html>
