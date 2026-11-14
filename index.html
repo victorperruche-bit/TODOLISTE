@@ -128,6 +128,8 @@
   .tag.devoir { background: #fef3c7; color: #92400e; }
   .tag.mail { background: #d1fae5; color: #065f46; }
   .tag.slack { background: #f3e8ff; color: #6b21a8; }
+  .tag.auto { background: #dbeafe; color: #1e40af; }
+  .sync-icon { font-size: 13px; margin-right: 4px; }
   .delete {
     border: none;
     background: transparent;
@@ -237,7 +239,13 @@
       div.className = "task";
       const span = document.createElement("span");
       span.className = "label";
-      span.textContent = t.text;
+      if (t.synced) {
+        const ico = document.createElement("span");
+        ico.className = "sync-icon";
+        ico.textContent = "🔄";
+        span.appendChild(ico);
+      }
+      span.appendChild(document.createTextNode(t.text));
       div.appendChild(span);
 
       const tag = document.createElement("span");
@@ -338,6 +346,44 @@
   updateNotifUI();
   scheduleReminders();
   render();
+
+  function loadSyncedTasks() {
+    fetch("tasks.json", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!data || !Array.isArray(data.tasks)) return;
+        let changed = false;
+        data.tasks.forEach((remote) => {
+          if (!remote.id || !remote.text) return;
+          const local = tasks.find((t) => t.id === remote.id);
+          if (!local) {
+            tasks.push({
+              id: remote.id,
+              text: remote.text,
+              category: ["devoir", "mail", "slack"].includes(remote.category) ? remote.category : "devoir",
+              due: remote.due || null,
+              done: !!remote.done,
+              synced: true,
+            });
+            changed = true;
+          } else if (local.synced) {
+            local.text = remote.text;
+            local.category = remote.category;
+            local.due = remote.due || null;
+            changed = true;
+          }
+        });
+        const remoteIds = new Set(data.tasks.map((t) => t.id));
+        const stale = tasks.filter((t) => t.synced && !remoteIds.has(t.id) && t.done);
+        if (stale.length) {
+          tasks = tasks.filter((t) => !stale.includes(t));
+          changed = true;
+        }
+        if (changed) { save(); render(); scheduleReminders(); }
+      })
+      .catch(() => {});
+  }
+  loadSyncedTasks();
 </script>
 </body>
 </html>
