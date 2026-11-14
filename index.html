@@ -2,7 +2,14 @@
 <html lang="fr">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="Todoliste" />
+<meta name="theme-color" content="#2563eb" />
+<link rel="apple-touch-icon" href="icons/icon-180.png" />
+<link rel="icon" href="icons/icon-192.png" />
+<link rel="manifest" href="manifest.webmanifest" />
 <title>Ma Todoliste</title>
 <style>
   :root {
@@ -24,13 +31,29 @@
     min-height: 100vh;
     display: flex;
     justify-content: center;
-    padding: 48px 16px;
+    padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+    padding-top: calc(24px + env(safe-area-inset-top));
+    -webkit-tap-highlight-color: transparent;
   }
   .app { width: 100%; max-width: 560px; }
+  input, select, button { font-size: 16px; }
+  button { -webkit-appearance: none; appearance: none; }
   h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
   .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
 
-  form { display: flex; gap: 8px; margin-bottom: 12px; }
+  form { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  form input[type="text"] { flex: 1 1 100%; }
+  input[type="datetime-local"] {
+    padding: 12px 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--card);
+    font-size: 15px;
+    color: var(--text);
+    outline: none;
+    flex: 1 1 45%;
+  }
+  input[type="datetime-local"]:focus { border-color: var(--accent); }
   input[type="text"] {
     flex: 1;
     padding: 12px 14px;
@@ -130,6 +153,13 @@
     font-size: 13px; cursor: pointer; padding: 4px 6px; border-radius: 6px;
   }
   .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
+  .notif { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+  .notif button {
+    border: 1px solid var(--line); background: var(--card); color: var(--text);
+    padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer;
+  }
+  .notif span { color: var(--muted); font-size: 13px; }
+  .install-hint { color: var(--muted); font-size: 12px; margin-top: 24px; text-align: center; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -139,6 +169,7 @@
 
   <form id="form">
     <input type="text" id="input" placeholder="Ex : Répondre au mail de M. Dupont…" autocomplete="off" />
+    <input type="datetime-local" id="due" title="Rappel (optionnel)" />
     <select id="category">
       <option value="devoir">Devoir</option>
       <option value="mail">Mail</option>
@@ -163,6 +194,13 @@
     <span id="count"></span>
     <button id="clearDone">Effacer les terminées</button>
   </div>
+
+  <div class="notif">
+    <button id="notifBtn">🔔 Activer les rappels</button>
+    <span id="notifState"></span>
+  </div>
+
+  <p class="install-hint">📱 iPhone : ouvre cette page dans Safari, puis <b>Partager → Sur l'écran d'accueil</b> pour installer l'app.</p>
 </div>
 
 <script>
@@ -227,9 +265,10 @@
     e.preventDefault();
     const text = $("input").value.trim();
     if (!text) return;
-    tasks.push({ id: Date.now(), text, category: $("category").value, done: false });
+    tasks.push({ id: Date.now(), text, category: $("category").value, due: $("due").value ? new Date($("due").value).getTime() : null, done: false });
     $("input").value = "";
-    save(); render();
+    $("due").value = "";
+    save(); render(); scheduleReminders();
   });
 
   $("filters").addEventListener("click", (e) => {
@@ -245,6 +284,59 @@
     save(); render();
   });
 
+  const notifBtn = $("notifBtn"), notifState = $("notifState");
+  const timers = [];
+
+  function notify(title, body) {
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    if (navigator.serviceWorker?.controller) {
+      navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, { body, icon: "icons/icon-192.png", badge: "icons/icon-192.png", tag: title }));
+    } else {
+      new Notification(title, { body, icon: "icons/icon-192.png" });
+    }
+  }
+
+  function scheduleReminders() {
+    timers.forEach(clearTimeout);
+    timers.length = 0;
+    if (!("Notification" in window) || Notification.permission !== "granted") return;
+    const now = Date.now();
+    tasks.filter(t => !t.done && t.due).forEach(t => {
+      const delay = t.due - now;
+      if (delay > 0 && delay < 86400000) {
+        timers.push(setTimeout(() => {
+          notify("Rappel : " + t.text, "C'est l'heure de cette tâche !");
+        }, delay));
+      }
+    });
+  }
+
+  function updateNotifUI() {
+    if (!("Notification" in window)) {
+      notifBtn.hidden = true;
+      notifState.textContent = "Notifications non prises en charge.";
+      return;
+    }
+    const granted = Notification.permission === "granted";
+    notifBtn.textContent = granted ? "🔕 Rappels activés" : "🔔 Activer les rappels";
+    notifBtn.disabled = granted;
+    notifState.textContent = granted ? "Tu recevras un rappel à l'heure de chaque tâche (app ouverte)." : "Demande la permission pour être rappelé à l'heure des tâches.";
+  }
+
+  notifBtn.addEventListener("click", async () => {
+    if ("Notification" in window && Notification.permission === "default") {
+      await Notification.requestPermission();
+    }
+    updateNotifUI();
+    scheduleReminders();
+  });
+
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").then(() => scheduleReminders());
+  }
+
+  updateNotifUI();
+  scheduleReminders();
   render();
 </script>
 </body>
