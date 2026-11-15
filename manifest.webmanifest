@@ -1,15 +1,58 @@
 {
   "name": "Ma Todoliste",
   "short_name": "Todoliste",
-  "description": "Ce que tu dois faire — devoirs, mails, Slack.",
+  "description": "Gestion de tâches minimaliste avec rappels - Devoirs, Mails, Slack",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#f7f7f5",
   "theme_color": "#2563eb",
   "orientation": "portrait",
+  "status_bar_style": "default",
+  "ios_status_bar_style": "default",
+  "apple_mobile_web_app_capable": true,
+  "apple_mobile_web_app_status_bar_style": "default",
+  "apple_mobile_web_app_title": "Ma Todoliste",
   "icons": [
-    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
-  ]
+    {
+      "src": "icons/icon-180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple touch"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "iarc_protocol_applications": [],
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "edge_side_panel": {
+    "preferred_width": 400
+  },
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "protocol_handlers": [],
+  "share_target": {
+    "action": "./index.html",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "text",
+      "text": "text",
+      "url": "url"
+    }
+  }
 }

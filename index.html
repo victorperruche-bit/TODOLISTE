@@ -22,6 +22,9 @@
     --devoir: #f59e0b;
     --mail: #10b981;
     --slack: #a855f7;
+    --danger: #dc2626;
+    --success: #10b981;
+    --warning: #f59e0b;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
@@ -37,7 +40,7 @@
   }
   .app { width: 100%; max-width: 560px; }
   input, select, button { font-size: 16px; }
-  button { -webkit-appearance: none; appearance: none; }
+  button { -webkit-appearance: none; appearance: none; cursor: pointer; }
   h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
   .subtitle { color: var(--muted); font-size: 14px; margin-bottom: 28px; }
 
@@ -87,6 +90,7 @@
     transition: opacity .15s;
   }
   button.add:hover { opacity: .88; }
+  button.add:disabled { opacity: .5; cursor: not-allowed; }
 
   .filters { display: flex; gap: 6px; margin: 16px 0 8px; flex-wrap: wrap; }
   .filters button {
@@ -115,19 +119,26 @@
   }
   @keyframes in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
   li input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
-  .task { flex: 1; }
-  .task .label { font-size: 15px; }
+  .task { flex: 1; min-width: 0; }
+  .task .label { font-size: 15px; display: block; }
   li.done .task .label { text-decoration: line-through; color: var(--muted); }
+  .task .due { font-size: 12px; color: var(--muted); margin-top: 4px; display: block; }
   .tag {
     font-size: 11px;
     font-weight: 600;
     padding: 3px 8px;
     border-radius: 999px;
     letter-spacing: .3px;
+    flex-shrink: 0;
   }
   .tag.devoir { background: #fef3c7; color: #92400e; }
   .tag.mail { background: #d1fae5; color: #065f46; }
   .tag.slack { background: #f3e8ff; color: #6b21a8; }
+  .actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
   .delete {
     border: none;
     background: transparent;
@@ -137,8 +148,20 @@
     padding: 4px 6px;
     border-radius: 6px;
     transition: color .15s, background .15s;
+    line-height: 1;
   }
-  .delete:hover { color: #dc2626; background: #fee2e2; }
+  .delete:hover { color: var(--danger); background: #fee2e2; }
+  .edit {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 6px;
+    transition: color .15s, background .15s;
+  }
+  .edit:hover { color: var(--accent); background: #eff6ff; }
 
   .footer {
     display: flex;
@@ -153,13 +176,94 @@
     font-size: 13px; cursor: pointer; padding: 4px 6px; border-radius: 6px;
   }
   .empty { text-align: center; color: var(--muted); padding: 40px 0; font-size: 14px; }
-  .notif { display: flex; align-items: center; gap: 10px; margin-top: 20px; }
+  .notif { display: flex; align-items: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
   .notif button {
     border: 1px solid var(--line); background: var(--card); color: var(--text);
     padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 500; cursor: pointer;
   }
+  .notif button:disabled { opacity: .5; cursor: not-allowed; }
   .notif span { color: var(--muted); font-size: 13px; }
   .install-hint { color: var(--muted); font-size: 12px; margin-top: 24px; text-align: center; line-height: 1.5; }
+  
+  /* Modal styles */
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+  .modal {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    width: 100%;
+    max-width: 500px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+  }
+  .modal h2 {
+    font-size: 20px;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  .modal-form { display: flex; flex-direction: column; gap: 12px; }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+    margin-top: 16px;
+  }
+  .modal-actions button {
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+  .modal-actions .cancel {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+  .modal-actions .save {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+  }
+  
+  /* Sort indicators */
+  .sort-indicator {
+    font-size: 10px;
+    margin-left: 4px;
+    opacity: .6;
+  }
+  
+  /* Toast notification */
+  .toast {
+    position: fixed;
+    bottom: calc(24px + env(safe-area-inset-bottom) + 40px);
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: var(--text);
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 2000;
+    opacity: 0;
+    transition: opacity .3s, transform .3s;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
 </style>
 </head>
 <body>
@@ -186,6 +290,12 @@
     <button data-filter="todo">À faire</button>
     <button data-filter="done">Terminé</button>
   </div>
+  
+  <div class="filters" id="sort-filters">
+    <button data-sort="created-desc" class="active">Récents <span class="sort-indicator">↓</span></button>
+    <button data-sort="due-asc">Proches <span class="sort-indicator"></span></button>
+    <button data-sort="category">Catégorie <span class="sort-indicator"></span></button>
+  </div>
 
   <ul id="list"></ul>
   <div class="empty" id="empty" hidden>Rien ici. Ajoute une tâche ! ✨</div>
@@ -203,141 +313,749 @@
   <p class="install-hint">📱 iPhone : ouvre cette page dans Safari, puis <b>Partager → Sur l'écran d'accueil</b> pour installer l'app.</p>
 </div>
 
+<!-- Modal for editing tasks -->
+<div class="modal-overlay" id="editModal" hidden>
+  <div class="modal">
+    <h2>Modifier la tâche</h2>
+    <form class="modal-form" id="editForm">
+      <input type="text" id="editInput" placeholder="Texte de la tâche" autocomplete="off" />
+      <input type="datetime-local" id="editDue" title="Rappel (optionnel)" />
+      <select id="editCategory">
+        <option value="devoir">Devoir</option>
+        <option value="mail">Mail</option>
+        <option value="slack">Slack</option>
+      </select>
+      <div class="modal-actions">
+        <button type="button" class="cancel" id="editCancel">Annuler</button>
+        <button type="submit" class="save" id="editSave">Enregistrer</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Toast notification -->
+<div class="toast" id="toast"></div>
+
 <script>
-  const STORAGE_KEY = "todoliste.tasks";
-  const CATS = ["devoir", "mail", "slack"];
+// ============================================
+// TODOLISTE - Application de gestion de tâches
+// Version 2.0 - Corrigée et améliorée
+// ============================================
 
-  let tasks = [];
-  try { tasks = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { tasks = []; }
-  let filter = "all";
+// Configuration
+const STORAGE_KEY = "todoliste.tasks";
+const STORAGE_VERSION = "2.0";
+const CATS = ["devoir", "mail", "slack"];
 
-  const $ = (id) => document.getElementById(id);
-  const listEl = $("list"), emptyEl = $("empty"), countEl = $("count");
+// État de l'application
+let tasks = [];
+let filter = "all";
+let sortBy = "created-desc";
+let editingTaskId = null;
 
-  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+// Éléments DOM
+const $ = (id) => document.getElementById(id);
+const listEl = $("list");
+const emptyEl = $("empty");
+const countEl = $("count");
+const formEl = $("form");
+const inputEl = $("input");
+const dueEl = $("due");
+const categoryEl = $("category");
+const filtersEl = $("filters");
+const sortFiltersEl = $("sort-filters");
+const clearDoneBtn = $("clearDone");
+const notifBtn = $("notifBtn");
+const notifState = $("notifState");
+const editModal = $("editModal");
+const editForm = $("editForm");
+const editInput = $("editInput");
+const editDue = $("editDue");
+const editCategory = $("editCategory");
+const editCancel = $("editCancel");
+const editSave = $("editSave");
+const toast = $("toast");
 
-  function render() {
-    const visible = tasks.filter(t =>
-      filter === "all" ? true :
-      filter === "todo" ? !t.done :
-      filter === "done" ? t.done :
-      t.category === filter
-    );
-    listEl.innerHTML = "";
-    visible.forEach(t => {
-      const li = document.createElement("li");
-      if (t.done) li.classList.add("done");
+// Gestion des timers de rappel
+const timers = new Map(); // Map<taskId, timerId>
 
-      const cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.checked = t.done;
-      cb.addEventListener("change", () => { t.done = cb.checked; save(); render(); });
+// ============================================
+// UTILITAIRES
+// ============================================
 
-      const div = document.createElement("div");
-      div.className = "task";
-      const span = document.createElement("span");
-      span.className = "label";
-      span.textContent = t.text;
-      div.appendChild(span);
+/**
+ * Affiche un toast notification
+ */
+function showToast(message, duration = 3000) {
+  toast.textContent = message;
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), duration);
+}
 
-      const tag = document.createElement("span");
-      tag.className = "tag " + t.category;
-      tag.textContent = t.category;
-
-      const del = document.createElement("button");
-      del.className = "delete";
-      del.title = "Supprimer";
-      del.textContent = "✕";
-      del.addEventListener("click", () => {
-        tasks = tasks.filter(x => x !== t);
-        save(); render();
-      });
-
-      li.append(cb, div, tag, del);
-      listEl.appendChild(li);
-    });
-    emptyEl.hidden = visible.length > 0;
-    const remaining = tasks.filter(t => !t.done).length;
-    countEl.textContent = remaining === 0 ? "Tout est fait 🎉" : remaining + (remaining > 1 ? " tâches restantes" : " tâche restante");
+/**
+ * Formate une date en string lisible
+ */
+function formatDate(timestamp) {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  
+  // Aujourd'hui
+  if (date.toDateString() === now.toDateString()) {
+    return "Aujourd'hui à " + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }
-
-  $("form").addEventListener("submit", (e) => {
-    e.preventDefault();
-    const text = $("input").value.trim();
-    if (!text) return;
-    tasks.push({ id: Date.now(), text, category: $("category").value, due: $("due").value ? new Date($("due").value).getTime() : null, done: false });
-    $("input").value = "";
-    $("due").value = "";
-    save(); render(); scheduleReminders();
-  });
-
-  $("filters").addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-filter]");
-    if (!btn) return;
-    filter = btn.dataset.filter;
-    document.querySelectorAll("#filters button").forEach(b => b.classList.toggle("active", b === btn));
-    render();
-  });
-
-  $("clearDone").addEventListener("click", () => {
-    tasks = tasks.filter(t => !t.done);
-    save(); render();
-  });
-
-  const notifBtn = $("notifBtn"), notifState = $("notifState");
-  const timers = [];
-
-  function notify(title, body) {
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
-    if (navigator.serviceWorker?.controller) {
-      navigator.serviceWorker.ready.then((reg) => reg.showNotification(title, { body, icon: "icons/icon-192.png", badge: "icons/icon-192.png", tag: title }));
-    } else {
-      new Notification(title, { body, icon: "icons/icon-192.png" });
-    }
+  // Demain
+  if (date.toDateString() === tomorrow.toDateString()) {
+    return "Demain à " + date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
   }
+  // Date complète
+  return date.toLocaleDateString('fr-FR', { 
+    day: 'numeric', 
+    month: 'short', 
+    hour: '2-digit', 
+    minute: '2-digit' 
+  });
+}
 
-  function scheduleReminders() {
-    timers.forEach(clearTimeout);
-    timers.length = 0;
-    if (!("Notification" in window) || Notification.permission !== "granted") return;
-    const now = Date.now();
-    tasks.filter(t => !t.done && t.due).forEach(t => {
-      const delay = t.due - now;
-      if (delay > 0 && delay < 86400000) {
-        timers.push(setTimeout(() => {
-          notify("Rappel : " + t.text, "C'est l'heure de cette tâche !");
-        }, delay));
+/**
+ * Génère un ID unique
+ */
+function generateId() {
+  return Date.now() + "-" + Math.random().toString(36).substr(2, 9);
+}
+
+// ============================================
+// GESTION DES DONNÉES
+// ============================================
+
+/**
+ * Charge les tâches depuis le localStorage
+ */
+function loadTasks() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const storedVersion = localStorage.getItem(STORAGE_KEY + ".version");
+    
+    if (stored) {
+      const data = JSON.parse(stored);
+      
+      // Migration des anciennes données (version 1.0)
+      if (!storedVersion || storedVersion !== STORAGE_VERSION) {
+        tasks = data.map((t, index) => ({
+          id: t.id || generateId(),
+          text: t.text || t,
+          category: t.category || "devoir",
+          due: t.due && !isNaN(t.due) ? t.due : null,
+          done: t.done || false,
+          createdAt: t.createdAt || Date.now() - (data.length - index) * 1000
+        }));
+        saveTasks();
+        localStorage.setItem(STORAGE_KEY + ".version", STORAGE_VERSION);
+      } else {
+        tasks = data;
       }
+    }
+  } catch (e) {
+    console.error("Erreur lors du chargement des tâches:", e);
+    tasks = [];
+  }
+  
+  // Vérifier et corriger les données
+  tasks = tasks.filter(t => t && t.text);
+  tasks.forEach(t => {
+    if (!t.id) t.id = generateId();
+    if (!t.category || !CATS.includes(t.category)) t.category = "devoir";
+    if (t.due && isNaN(t.due)) t.due = null;
+    if (typeof t.done !== "boolean") t.done = false;
+    if (!t.createdAt) t.createdAt = Date.now();
+  });
+  
+  return tasks;
+}
+
+/**
+ * Sauvegarde les tâches dans le localStorage
+ */
+function saveTasks() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    localStorage.setItem(STORAGE_KEY + ".version", STORAGE_VERSION);
+  } catch (e) {
+    console.error("Erreur lors de la sauvegarde des tâches:", e);
+    showToast("Erreur de sauvegarde", 5000);
+  }
+}
+
+/**
+ * Trouve une tâche par ID
+ */
+function findTaskById(id) {
+  return tasks.find(t => t.id === id);
+}
+
+/**
+ * Trouve l'index d'une tâche par ID
+ */
+function findTaskIndexById(id) {
+  return tasks.findIndex(t => t.id === id);
+}
+
+// ============================================
+// GESTION DES RAPPELS (NOTIFICATIONS)
+// ============================================
+
+/**
+ * Affiche une notification
+ */
+function notify(title, body) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission !== "granted") return;
+  
+  if (navigator.serviceWorker?.controller) {
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.showNotification(title, {
+        body: body,
+        icon: "icons/icon-192.png",
+        badge: "icons/icon-192.png",
+        tag: title,
+        renotify: true
+      });
+    }).catch(() => {
+      // Fallback si le service worker échoue
+      new Notification(title, { body, icon: "icons/icon-192.png" });
     });
+  } else {
+    new Notification(title, { body, icon: "icons/icon-192.png" });
   }
+}
 
-  function updateNotifUI() {
-    if (!("Notification" in window)) {
-      notifBtn.hidden = true;
-      notifState.textContent = "Notifications non prises en charge.";
-      return;
-    }
-    const granted = Notification.permission === "granted";
-    notifBtn.textContent = granted ? "🔕 Rappels activés" : "🔔 Activer les rappels";
-    notifBtn.disabled = granted;
-    notifState.textContent = granted ? "Tu recevras un rappel à l'heure de chaque tâche (app ouverte)." : "Demande la permission pour être rappelé à l'heure des tâches.";
-  }
-
-  notifBtn.addEventListener("click", async () => {
-    if ("Notification" in window && Notification.permission === "default") {
-      await Notification.requestPermission();
-    }
+/**
+ * Planifie les rappels pour toutes les tâches
+ */
+function scheduleReminders() {
+  // Nettoyer tous les timers existants
+  timers.forEach((timerId) => clearTimeout(timerId));
+  timers.clear();
+  
+  if (!("Notification" in window) || Notification.permission !== "granted") {
     updateNotifUI();
+    return;
+  }
+  
+  const now = Date.now();
+  
+  tasks.filter(t => !t.done && t.due && !isNaN(t.due)).forEach(t => {
+    const delay = t.due - now;
+    
+    // Ne planifier que les rappels dans le futur (mais pas trop loin)
+    if (delay > 0 && delay < 86400000 * 7) { // Max 7 jours
+      const timerId = setTimeout(() => {
+        notify("Rappel : " + t.text, "C'est l'heure de cette tâche !");
+        // Replanifier si la tâche n'est pas terminée
+        const task = findTaskById(t.id);
+        if (task && !task.done) {
+          scheduleReminders();
+        }
+      }, delay);
+      
+      timers.set(t.id, timerId);
+    }
+  });
+  
+  updateNotifUI();
+}
+
+/**
+ * Nettoie le timer pour une tâche spécifique
+ */
+function clearTaskTimer(taskId) {
+  if (timers.has(taskId)) {
+    clearTimeout(timers.get(taskId));
+    timers.delete(taskId);
+  }
+}
+
+/**
+ * Met à jour l'UI des notifications
+ */
+function updateNotifUI() {
+  if (!("Notification" in window)) {
+    notifBtn.hidden = true;
+    notifState.textContent = "Notifications non prises en charge.";
+    return;
+  }
+  
+  const granted = Notification.permission === "granted";
+  const denied = Notification.permission === "denied";
+  
+  if (denied) {
+    notifBtn.textContent = "❌ Rappels bloqués";
+    notifBtn.disabled = true;
+    notifState.textContent = "Autorise les notifications dans les paramètres de ton navigateur.";
+  } else if (granted) {
+    notifBtn.textContent = "🔕 Rappels activés";
+    notifBtn.disabled = true;
+    const activeReminders = tasks.filter(t => !t.done && t.due && !isNaN(t.due) && t.due > Date.now()).length;
+    notifState.textContent = activeReminders > 0 
+      ? `Tu as ${activeReminders} rappel${activeReminders > 1 ? 's' : ''} actif${activeReminders > 1 ? 's' : ''} (app ouverte).`
+      : "Tu recevras un rappel à l'heure de chaque tâche (app ouverte).";
+  } else {
+    notifBtn.textContent = "🔔 Activer les rappels";
+    notifBtn.disabled = false;
+    notifState.textContent = "Demande la permission pour être rappelé à l'heure des tâches.";
+  }
+}
+
+// ============================================
+// TRI ET FILTRAGE
+// ============================================
+
+/**
+ * Trie les tâches selon le critère sélectionné
+ */
+function sortTasks() {
+  return [...tasks].sort((a, b) => {
+    switch (sortBy) {
+      case "due-asc":
+        // Tri par date de rappel (les plus proches d'abord)
+        const aDue = a.due || Infinity;
+        const bDue = b.due || Infinity;
+        return aDue - bDue;
+      
+      case "category":
+        // Tri par catégorie puis par date de création
+        const categoryOrder = { devoir: 0, mail: 1, slack: 2 };
+        const aCat = categoryOrder[a.category] ?? 999;
+        const bCat = categoryOrder[b.category] ?? 999;
+        if (aCat !== bCat) return aCat - bCat;
+        return b.createdAt - a.createdAt;
+      
+      case "created-desc":
+      default:
+        // Tri par date de création (les plus récentes d'abord)
+        return b.createdAt - a.createdAt;
+    }
+  });
+}
+
+/**
+ * Filtre les tâches selon le filtre sélectionné
+ */
+function filterTasks() {
+  return sortTasks().filter(t => {
+    switch (filter) {
+      case "all":
+        return true;
+      case "todo":
+        return !t.done;
+      case "done":
+        return t.done;
+      default:
+        return t.category === filter;
+    }
+  });
+}
+
+// ============================================
+// RENDU
+// ============================================
+
+/**
+ * Formate une tâche pour l'affichage
+ */
+function renderTask(t) {
+  const li = document.createElement("li");
+  if (t.done) li.classList.add("done");
+
+  // Checkbox
+  const cb = document.createElement("input");
+  cb.type = "checkbox";
+  cb.checked = t.done;
+  cb.addEventListener("change", () => {
+    t.done = cb.checked;
+    if (t.done) {
+      clearTaskTimer(t.id);
+    }
+    saveTasks();
+    render();
     scheduleReminders();
   });
 
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("sw.js").then(() => scheduleReminders());
+  // Contenu de la tâche
+  const taskDiv = document.createElement("div");
+  taskDiv.className = "task";
+  
+  const label = document.createElement("span");
+  label.className = "label";
+  label.textContent = t.text;
+  taskDiv.appendChild(label);
+  
+  // Date de rappel
+  if (t.due && !isNaN(t.due)) {
+    const dueSpan = document.createElement("span");
+    dueSpan.className = "due";
+    dueSpan.textContent = formatDate(t.due);
+    taskDiv.appendChild(dueSpan);
   }
 
-  updateNotifUI();
-  scheduleReminders();
+  // Tag de catégorie
+  const tag = document.createElement("span");
+  tag.className = "tag " + t.category;
+  tag.textContent = t.category;
+
+  // Actions (modifier, supprimer)
+  const actionsDiv = document.createElement("div");
+  actionsDiv.className = "actions";
+  
+  const editBtn = document.createElement("button");
+  editBtn.className = "edit";
+  editBtn.title = "Modifier";
+  editBtn.textContent = "✏️";
+  editBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    openEditModal(t.id);
+  });
+  
+  const delBtn = document.createElement("button");
+  delBtn.className = "delete";
+  delBtn.title = "Supprimer";
+  delBtn.textContent = "✕";
+  delBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    const taskIndex = findTaskIndexById(t.id);
+    if (taskIndex !== -1) {
+      clearTaskTimer(t.id);
+      tasks.splice(taskIndex, 1);
+      saveTasks();
+      render();
+      scheduleReminders();
+      showToast("Tâche supprimée");
+    }
+  });
+  
+  actionsDiv.appendChild(editBtn);
+  actionsDiv.appendChild(delBtn);
+
+  // Assemblage
+  li.appendChild(cb);
+  li.appendChild(taskDiv);
+  li.appendChild(tag);
+  li.appendChild(actionsDiv);
+  
+  return li;
+}
+
+/**
+ * Rafraîchit l'affichage de la liste
+ */
+function render() {
+  const visible = filterTasks();
+  
+  listEl.innerHTML = "";
+  visible.forEach(t => {
+    listEl.appendChild(renderTask(t));
+  });
+  
+  emptyEl.hidden = visible.length > 0;
+  
+  const remaining = tasks.filter(t => !t.done).length;
+  countEl.textContent = remaining === 0 
+    ? "Tout est fait 🎉" 
+    : remaining + (remaining > 1 ? " tâches restantes" : " tâche restante");
+}
+
+// ============================================
+// GESTION DES TÂCHES
+// ============================================
+
+/**
+ * Ajoute une nouvelle tâche
+ */
+function addTask(text, category, due) {
+  const newTask = {
+    id: generateId(),
+    text: text.trim(),
+    category: category || "devoir",
+    due: due && !isNaN(new Date(due).getTime()) ? new Date(due).getTime() : null,
+    done: false,
+    createdAt: Date.now()
+  };
+  
+  tasks.push(newTask);
+  saveTasks();
   render();
+  scheduleReminders();
+  
+  // Réinitialiser le formulaire
+  inputEl.value = "";
+  dueEl.value = "";
+  
+  showToast("Tâche ajoutée");
+  return newTask;
+}
+
+/**
+ * Met à jour une tâche existante
+ */
+function updateTask(taskId, updates) {
+  const index = findTaskIndexById(taskId);
+  if (index === -1) return false;
+  
+  const task = tasks[index];
+  
+  // Nettoyer l'ancien timer si la date change
+  if (updates.due !== undefined && task.due !== updates.due) {
+    clearTaskTimer(taskId);
+  }
+  
+  tasks[index] = { ...task, ...updates };
+  
+  // Revalider la date
+  if (tasks[index].due && isNaN(tasks[index].due)) {
+    tasks[index].due = null;
+  }
+  
+  saveTasks();
+  render();
+  scheduleReminders();
+  
+  showToast("Tâche mise à jour");
+  return true;
+}
+
+/**
+ * Supprime toutes les tâches terminées
+ */
+function clearDoneTasks() {
+  const initialCount = tasks.filter(t => t.done).length;
+  tasks = tasks.filter(t => !t.done);
+  
+  if (initialCount > 0) {
+    saveTasks();
+    render();
+    scheduleReminders();
+    showToast(`${initialCount} tâche${initialCount > 1 ? 's' : ''} terminée${initialCount > 1 ? 's' : ''} supprimée${initialCount > 1 ? 's' : ''}`);
+  }
+}
+
+// ============================================
+// MODAL D'ÉDITION
+// ============================================
+
+/**
+ * Ouvre le modal d'édition pour une tâche
+ */
+function openEditModal(taskId) {
+  const task = findTaskById(taskId);
+  if (!task) return;
+  
+  editingTaskId = taskId;
+  editInput.value = task.text;
+  editDue.value = task.due ? new Date(task.due).toISOString().slice(0, 16) : "";
+  editCategory.value = task.category;
+  
+  editModal.hidden = false;
+}
+
+/**
+ * Ferme le modal d'édition
+ */
+function closeEditModal() {
+  editingTaskId = null;
+  editModal.hidden = true;
+}
+
+/**
+ * Sauvegarde les modifications de la tâche
+ */
+function saveEdit() {
+  if (!editingTaskId) return;
+  
+  const text = editInput.value.trim();
+  if (!text) {
+    showToast("Le texte ne peut pas être vide");
+    return;
+  }
+  
+  const dueValue = editDue.value;
+  const due = dueValue ? new Date(dueValue).getTime() : null;
+  
+  updateTask(editingTaskId, {
+    text,
+    category: editCategory.value,
+    due: due && !isNaN(due) ? due : null
+  });
+  
+  closeEditModal();
+}
+
+// ============================================
+// INITIALISATION
+// ============================================
+
+/**
+ * Initialise l'application
+ */
+function init() {
+  // Charger les tâches
+  loadTasks();
+  
+  // Rendu initial
+  render();
+  
+  // Mise à jour de l'UI des notifications
+  updateNotifUI();
+  
+  // Planifier les rappels initiaux
+  if ("Notification" in window) {
+    scheduleReminders();
+  }
+  
+  // Enregistrer le service worker
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("sw.js").then(() => {
+      // Le service worker est enregistré, on peut planifier les rappels
+      if (Notification.permission === "granted") {
+        scheduleReminders();
+      }
+    }).catch(err => {
+      console.error("Erreur d'enregistrement du service worker:", err);
+    });
+  }
+  
+  // Éviter le double-clic sur mobile
+  let lastTap = 0;
+  document.addEventListener("click", (e) => {
+    const now = Date.now();
+    if (now - lastTap < 300) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    lastTap = now;
+  }, { passive: false });
+}
+
+// ============================================
+// ÉCOUTEURS D'ÉVÉNEMENTS
+// ============================================
+
+// Ajout de tâche
+formEl.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const text = inputEl.value.trim();
+  if (!text) {
+    showToast("Le texte ne peut pas être vide");
+    return;
+  }
+  
+  const dueValue = dueEl.value;
+  const due = dueValue ? new Date(dueValue).getTime() : null;
+  
+  addTask(text, categoryEl.value, due);
+});
+
+// Filtres
+filtersEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-filter]");
+  if (!btn) return;
+  
+  filter = btn.dataset.filter;
+  filtersEl.querySelectorAll("button").forEach(b => {
+    b.classList.toggle("active", b === btn);
+  });
+  
+  render();
+});
+
+// Tri
+sortFiltersEl.addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-sort]");
+  if (!btn) return;
+  
+  const newSort = btn.dataset.sort;
+  
+  // Si on clique sur le même bouton, inverser l'ordre
+  if (sortBy === newSort) {
+    // Pour l'instant, on ne gère que l'ordre descendant
+    // On pourrait ajouter asc/desc pour chaque critère
+  }
+  
+  sortBy = newSort;
+  sortFiltersEl.querySelectorAll("button").forEach(b => {
+    b.classList.toggle("active", b === btn);
+  });
+  
+  // Mettre à jour les indicateurs de tri
+  sortFiltersEl.querySelectorAll("[data-sort]").forEach(b => {
+    const indicator = b.querySelector(".sort-indicator");
+    if (indicator) {
+      indicator.textContent = b.dataset.sort === sortBy ? "↓" : "";
+    }
+  });
+  
+  render();
+});
+
+// Effacer les tâches terminées
+clearDoneBtn.addEventListener("click", clearDoneTasks);
+
+// Notifications
+notifBtn.addEventListener("click", async () => {
+  if (!("Notification" in window)) return;
+  
+  if (Notification.permission === "default") {
+    const permission = await Notification.requestPermission();
+    if (permission === "granted") {
+      scheduleReminders();
+    }
+  }
+  
+  updateNotifUI();
+});
+
+// Modal d'édition
+editCancel.addEventListener("click", closeEditModal);
+
+editForm.addEventListener("submit", (e) => {
+  e.preventDefault();
+  saveEdit();
+});
+
+// Fermer le modal en cliquant à l'extérieur
+editModal.addEventListener("click", (e) => {
+  if (e.target === editModal) {
+    closeEditModal();
+  }
+});
+
+// Initialisation au chargement de la page
+document.addEventListener("DOMContentLoaded", init);
+
+// Gestion du rafraîchissement de page
+window.addEventListener("beforeunload", () => {
+  // Nettoyer tous les timers
+  timers.forEach((timerId) => clearTimeout(timerId));
+  timers.clear();
+});
+
+// Recharger les tâches quand on revient sur la page (depuis un autre onglet)
+window.addEventListener("focus", () => {
+  loadTasks();
+  render();
+  if (Notification.permission === "granted") {
+    scheduleReminders();
+  }
+});
+
+// Gestion des notifications cliquées (si l'app est ouverte)
+if ("Notification" in window) {
+  Notification.onclick = (e) => {
+    e.preventDefault();
+    window.focus();
+  };
+}
 </script>
 </body>
 </html>
